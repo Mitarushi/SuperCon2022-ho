@@ -91,6 +91,8 @@ int main(){
   vi minimum(m); // v[i] の 0 と 1 のうち数の少ない方
   vi minimum2(n,0); // v[i] の j 文字目のうち少ない方
 
+  int equiv=0;
+
   for(int i=0;i<m;i++){
     string z="";
     int one=0;
@@ -104,13 +106,15 @@ int main(){
     minimum[i]=min(one,n-one);
     cnt[z]++;
     v[i]=z;
+
+    if(cnt[z]==2)equiv++;
   }
 
   for(int i=0;i<n;i++){
     minimum2[i]=min(minimum2[i],m-minimum2[i]);
   }
 
-  cout<<"compile 6:06"<<endl;
+  cout<<"compile 7:35 :: "<<equiv<<endl;
   sort(minimum2.begin(),minimum2.end());
   for(int val:minimum2)cout<<val<<" ";
   cout<<endl;
