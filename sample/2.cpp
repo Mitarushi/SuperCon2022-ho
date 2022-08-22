@@ -110,6 +110,8 @@ int main(){
     minimum2[i]=min(minimum2[i],m-minimum2[i]);
   }
 
+  cout<<"compile 17:44"<<endl;
+  sort(minimum2.begin(),minimum2.end());
   for(int val:minimum2)cout<<val<<" ";
   cout<<endl;
 
@@ -123,6 +125,54 @@ int main(){
   run=5;
 
   int g=100; // | Q' |
+
+  // 01 両方拾えない文字列の期待値
+  vector<long double> failprob(n+1,0);
+  for(int k=1;k<n;k++){
+    int zero=k,one=n-k;
+    // zero C r + one C r
+    // /
+    // 1000 C r
+
+    ld x;
+    ld probzero=0,probone=0;
+
+    if(zero>=g){
+      x=0;
+      rep(i,0,g){
+        // *= zero-i
+        x+=log(zero-i);
+        // /= (i+1)
+        x-=log(1000-i);
+      }
+      x=exp(x);
+      probzero=x;
+    }
+
+    if(one>=g){
+      x=0;
+      rep(i,0,g){
+        // *= zero-i
+        x+=log(one-i);
+        // /= (i+1)
+        x-=log(1000-i);
+      }
+      x=exp(x);
+      probone=x;
+    }
+
+    // 0 を k 個含むやつから全部 0 or 全部 1 を採用する確率
+    failprob[k]=probzero+probone;
+  }
+
+  ld fail_expected=0;
+  for(int i=0;i<m;i++){
+    int zero=minimum[i];
+    fail_expected+=failprob[zero];
+  }
+
+  // g 個ランダムに選んで 条件をまだ満たしていない文字列の期待値
+  cout<<fail_expected<<endl;
 
   for(int t=0;t<run;t++){
     vector<int> cnt(n,0);
