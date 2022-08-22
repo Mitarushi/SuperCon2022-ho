@@ -42,8 +42,7 @@ void gen_table() {
     for (int id = 0; id < n_procs; id++) {
         int from = bs * id;
         int to = std::min(bs * (id + 1), sc::M_MAX);
-        MPI_Bcast(table + from, sc::N_MAX * (to - from), MPI_C_BOOL, id,
-                  MPI_COMM_WORLD);
+        MPI_Bcast(table + from, sc::N_MAX * (to - from), MPI_C_BOOL, id, MPI_COMM_WORLD);
 
         int cnt = 0;
         for (int i = from; i < to; i++) {
@@ -72,9 +71,7 @@ void run() {
 }
 
 int main(int argc, char **argv) {
-    sc::initialize(
-        argc,
-        argv);  // はじめに sc::initialize(argc, argv) を必ず呼び出すこと。
+    sc::initialize(argc, argv);  // はじめに sc::initialize(argc, argv) を必ず呼び出すこと。
 
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < sc::N_MAX; j++) {
