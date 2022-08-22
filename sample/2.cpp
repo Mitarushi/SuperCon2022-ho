@@ -89,6 +89,7 @@ int main(){
 
   vector<string> v(m); // accept[i][j] を並べたやつ
   vi minimum(m); // v[i] の 0 と 1 のうち数の少ない方
+  vi minimum2(n,0); // v[i] の j 文字目のうち少ない方
 
   for(int i=0;i<m;i++){
     string z="";
@@ -97,12 +98,20 @@ int main(){
       cout<<accept[i][j];
       z+=accept[i][j]+'0';
       one+=accept[i][j];
+      minimum2[j]+=accept[i][j];
     }
     cout<<" : "<<cnt[z]<<" :: "<<min(one,n-one)<<endl;
     minimum[i]=min(one,n-one);
     cnt[z]++;
     v[i]=z;
   }
+
+  for(int i=0;i<n;i++){
+    minimum2[i]=min(minimum2[i],m-minimum2[i]);
+  }
+
+  for(int val:minimum2)cout<<val<<" ";
+  cout<<endl;
 
   sort(minimum.begin(),minimum.end());
   for(int val:minimum)cout<<val<<" ";
