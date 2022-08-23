@@ -5,11 +5,11 @@
 
 int qs[sc::N_MAX];
 int myid, n_procs;
-uint8_t table[sc::M_MAX][sc::N_MAX / 8];
+bool table[sc::M_MAX][sc::N_MAX];
 uint16_t hamming_distance[sc::M_MAX][sc::M_MAX];
 
 constexpr int SIMULATE_BLOCK_SIZE = 128;
-void simulate_block(char *s, uint8_t *result, int i_form) {
+void simulate_block(char *s, bool *result, int i_form) {
     short q[SIMULATE_BLOCK_SIZE];
     for (int i = 0; i < SIMULATE_BLOCK_SIZE; i++) {
         q[i] = std::min(i_form + i, sc::N_MAX - 1);
@@ -25,7 +25,7 @@ void simulate_block(char *s, uint8_t *result, int i_form) {
 
     for (int i = 0; i < SIMULATE_BLOCK_SIZE; i++) {
         int index = std::min(i_form + i, sc::N_MAX - 1);
-        result[index / 8] |= sc::F[q[i]] << (index % 8);
+        result[index] = sc::F[q[i]];
     }
 }
 
@@ -45,7 +45,7 @@ void gen_table() {
     for (int id = 0; id < n_procs; id++) {
         int from = bs * id;
         int to = std::min(bs * (id + 1), sc::M_MAX);
-        MPI_Bcast(table + from, sc::N_MAX / 8 * (to - from), MPI_CHAR, id, MPI_COMM_WORLD);
+        MPI_Bcast(table + from, sc::N_MAX * (to - from), MPI_C_BOOL, id, MPI_COMM_WORLD);
     }
 }
 
@@ -58,13 +58,9 @@ void gen_table2() {
 #pragma omp parallel for
     for (int i = index_from; i < index_to; i++) {
         for (int j = 0; j < sc::M_MAX; j++) {
-            if (i >= j) continue;
             hamming_distance[i][j] = 0;
-            for (int k = 0; k < sc::N_MAX / 8; k++) {
-                uint8_t t = table[i][k] ^ table[j][k];
-                for (int l = 0; l < 8; l++) {
-                    hamming_distance[i][j] += (t >> l) & 1;
-                }
+            for (int k = 0; k < sc::N_MAX; k++) {
+                hamming_distance[i][j] += table[i][k] ^ table[j][k];
             }
         }
     }
@@ -89,12 +85,15 @@ struct hash {
     }
 };
 
-std::vector<std::vector<int>> small_humming(int k) {
+std::vector<std::vector<int>> get_small_hamming(int k) {
     std::vector<std::tuple<int, int, int>> hamming_sort;
     hamming_sort.reserve(sc::M_MAX * (sc::M_MAX - 1) / 2);
 
     for (int i = 0; i < sc::M_MAX; i++) {
         for (int j = i + 1; j < sc::M_MAX; j++) {
+            if (hamming_distance[i][j] == 0) {
+                continue;
+            }
             hamming_sort.emplace_back(hamming_distance[i][j], i, j);
         }
     }
@@ -105,15 +104,11 @@ std::vector<std::vector<int>> small_humming(int k) {
 
     std::unordered_set<uint64_t> hash_set;
     for (auto [c, p, q] : hamming_sort) {
-        if (c == 0) {
-            continue;
-        }
-
         hash h;
         std::vector<int> r;
         for (int i = 0; i < sc::N_MAX; i++) {
-            int t = table[p][i / 8] ^ table[q][i / 8];
-            if ((t >> (i % 8)) & 1) {
+            int t = table[p][i] ^ table[q][i];
+            if (t) {
                 h.next(i);
                 r.push_back(i);
             }
@@ -130,50 +125,6 @@ std::vector<std::vector<int>> small_humming(int k) {
     return result;
 }
 
-// |index| = p
-// 返り値 {ans.size(),ans}
-// ans と index[i] の積集合は常に非空 (0 <= i < n)
-pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index){
-  std::vector<int> count(1000,0); // count(sc::N_MAX,0);
-  std::vector<int> ans;
-  std::vector<int> satisfy(p,0);
-  std::vector<std::vector<int>> emerge(p,vector<int>(1000,0));
-
-  for(int i=0;i<p;i++){
-    for(int val:index[i]){
-      count[val]++;
-      emerge[i][val]=1;
-    }
-  }
-
-  while(true){
-    int id=-1,mx=-1;
-    for(int i=0;i<1000;i++){
-      if(count[i]>mx){
-        mx=count[i];
-        id=i;
-      }
-    }
-
-    if(mx==0)break;
-
-    ans.emplace_back(id);
-
-    count[id]=0;
-
-    for(int i=0;i<p;i++){
-      if(emerge[i][id]==1&&satisfy[i]==0){
-        satisfy[i]=1;
-        for(int val:index[i]){
-          count[val]--;
-        }
-      }
-    }
-  }
-
-  return {ans.size(),ans};
-}
-
 // main関数で入力を読み込んだ後、以下の関数が実行される。
 void run() {
     MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
@@ -182,7 +133,94 @@ void run() {
     gen_table();
     gen_table2();
 
-    auto t = small_humming(10);
+    const int k = 1000;
+    std::vector<std::vector<int>> small_hamming = get_small_hamming(k);
+
+    std::vector<int> greedy;
+    std::vector<char> satisfied(k, 0);
+    while (true) {
+        std::vector<double> weight_count(sc::N_MAX, 0.0);
+
+        for (int i = 0; i < k; i++) {
+            if (satisfied[i]) {
+                continue;
+            }
+
+            double inv = 1.0 / small_hamming[i].size();
+            for (int j : small_hamming[i]) {
+                weight_count[j] += inv;
+            }
+        }
+
+        int it = std::max_element(weight_count.begin(), weight_count.end()) - weight_count.begin();
+        if (weight_count[it] == 0.0) {
+            break;
+        }
+
+        for (int i = 0; i < k; i++) {
+            if (satisfied[i]) {
+                continue;
+            }
+
+            if (std::count(small_hamming[i].begin(), small_hamming[i].end(), it)) {
+                satisfied[i] = 1;
+            }
+        }
+
+        greedy.push_back(it);
+    }
+
+    while (true) {
+        int cnt = 0;
+
+        std::vector<double> weight_count(sc::N_MAX, 0.0);
+
+        for (int i = 0; i < sc::M_MAX; i++) {
+            for (int j = 0; j < i; j++) {
+                if (hamming_distance[i][j] == 0) {
+                    continue;
+                }
+
+                // std::cout << i << " " << j << std::endl;
+
+                bool flag = true;
+                for (int k : greedy) {
+                    if (table[i][k] ^ table[j][k]) {
+                        flag = false;
+                        break;
+                    }
+                }
+                if (!flag) {
+                    continue;
+                }
+
+                cnt += 1;
+
+                std::vector<int> use;
+                for (int k = 0; k < sc::N_MAX; k++) {
+                    if (table[i][k] ^ table[j][k]) {
+                        use.push_back(k);
+                    }
+                }
+
+                double inv = 1.0 / use.size();
+                for (int k : use) {
+                    weight_count[k] += inv;
+                }
+            }
+        }
+
+        if (cnt == 0) {
+            break;
+        }
+
+        int it = std::max_element(weight_count.begin(), weight_count.end()) - weight_count.begin();
+        greedy.push_back(it);
+    }
+
+    if (myid == 0) {
+        sc::output(greedy.size(), greedy.data());
+    }
 }
 
 int main(int argc, char **argv) {
