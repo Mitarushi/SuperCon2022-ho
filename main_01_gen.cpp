@@ -6,7 +6,7 @@
 int qs[sc::N_MAX];
 int myid, n_procs;
 uint8_t table[sc::M_MAX][sc::N_MAX / 8];
-short hamming_distance[sc::M_MAX][sc::M_MAX];
+uint16_t hamming_distance[sc::M_MAX][sc::M_MAX];
 
 constexpr int SIMULATE_BLOCK_SIZE = 128;
 void simulate_block(char *s, uint8_t *result, int i_form) {
@@ -68,6 +68,12 @@ void gen_table2() {
             }
         }
     }
+
+    for (int id = 0; id < n_procs; id++) {
+        int from = bs * id;
+        int to = std::min(bs * (id + 1), sc::M_MAX);
+        MPI_Bcast(hamming_distance + from, sc::M_MAX * (to - from), MPI_SHORT, id, MPI_COMM_WORLD);
+    }
 }
 
 struct hash {
@@ -119,13 +125,6 @@ std::vector<std::vector<int>> small_humming(int k) {
         }
 
         if (result.size() == k) break;
-    }
-
-    for (auto i : result) {
-        for (auto j : i) {
-            std::cout << j << " ";
-        }
-        std::cout << std::endl;
     }
 
     return result;
