@@ -1,3 +1,5 @@
 run_testcase/inputs/*
 run_testcase/outputs/*
+run_testcase/inputs2/*
+run_testcase/outputs2/*
 run_testcase/a.exe
