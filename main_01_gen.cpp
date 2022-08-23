@@ -1,5 +1,5 @@
 #include <mpi.h>
-
+#include <bits/stdc++.h>
 #include "tests/sc_header.h"  // このヘッダーを必ず include すること。
 
 int qs[sc::N_MAX];
@@ -76,6 +76,17 @@ void run() {
 
     gen_table();
     gen_table2();
+
+    std::vector<std::tuple<int, int, int>> hamming_sort;
+    hammig_sort.reserve(sc::M_MAX * (sc::M_MAX - 1) / 2);
+
+    for (int i = 0; i < sc::M_MAX; i++) {
+        for (int j = i + 1; j < sc::M_MAX; j++) {
+            hamming_sort.emplace_back(hamming_distance[i][j], i, j);
+        }
+    }
+    std::sort(hamming_sort.begin(), hamming_sort.end());
+
 }
 
 int main(int argc, char **argv) {
