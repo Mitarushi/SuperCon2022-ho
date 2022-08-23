@@ -130,6 +130,50 @@ std::vector<std::vector<int>> small_humming(int k) {
     return result;
 }
 
+// |index| = p
+// 返り値 {ans.size(),ans}
+// ans と index[i] の積集合は常に非空 (0 <= i < n)
+pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index){
+  std::vector<int> count(1000,0); // count(sc::N_MAX,0);
+  std::vector<int> ans;
+  std::vector<int> satisfy(p,0);
+  std::vector<std::vector<int>> emerge(p,vector<int>(1000,0));
+
+  for(int i=0;i<p;i++){
+    for(int val:index[i]){
+      count[val]++;
+      emerge[i][val]=1;
+    }
+  }
+
+  while(true){
+    int id=-1,mx=-1;
+    for(int i=0;i<1000;i++){
+      if(count[i]>mx){
+        mx=count[i];
+        id=i;
+      }
+    }
+
+    if(mx==0)break;
+
+    ans.emplace_back(id);
+
+    count[id]=0;
+
+    for(int i=0;i<p;i++){
+      if(emerge[i][id]==1&&satisfy[i]==0){
+        satisfy[i]=1;
+        for(int val:index[i]){
+          count[val]--;
+        }
+      }
+    }
+  }
+
+  return {ans.size(),ans};
+}
+
 // main関数で入力を読み込んだ後、以下の関数が実行される。
 void run() {
     MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
