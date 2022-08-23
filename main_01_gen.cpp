@@ -1,5 +1,6 @@
-#include <mpi.h>
 #include <bits/stdc++.h>
+#include <mpi.h>
+
 #include "tests/sc_header.h"  // このヘッダーを必ず include すること。
 
 int qs[sc::N_MAX];
@@ -69,14 +70,20 @@ void gen_table2() {
     }
 }
 
-// main関数で入力を読み込んだ後、以下の関数が実行される。
-void run() {
-    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
-    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+struct hash {
+    uint64_t x;
 
-    gen_table();
-    gen_table2();
+    hash() : x(0) {}
 
+    void next(int c) {
+        x = x ^ (x << 33);
+        x = x ^ (x >> 27);
+        x = x ^ (x << 5);
+        x ^= c;
+    }
+};
+
+std::vector<std::vector<int>> small_humming(int k) {
     std::vector<std::tuple<int, int, int>> hamming_sort;
     hamming_sort.reserve(sc::M_MAX * (sc::M_MAX - 1) / 2);
 
@@ -87,8 +94,52 @@ void run() {
     }
     std::sort(hamming_sort.begin(), hamming_sort.end());
 
+    std::vector<std::vector<int>> result;
+    result.reserve(k);
 
+    std::unordered_set<uint64_t> hash_set;
+    for (auto [c, p, q] : hamming_sort) {
+        if (c == 0) {
+            continue;
+        }
 
+        hash h;
+        std::vector<int> r;
+        for (int i = 0; i < sc::N_MAX; i++) {
+            int t = table[p][i / 8] ^ table[q][i / 8];
+            if ((t >> (i % 8)) & 1) {
+                h.next(i);
+                r.push_back(i);
+            }
+        }
+
+        if (!hash_set.count(h.x)) {
+            hash_set.insert(h.x);
+            result.push_back(r);
+        }
+
+        if (result.size() == k) break;
+    }
+
+    for (auto i : result) {
+        for (auto j : i) {
+            std::cout << j << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    return result;
+}
+
+// main関数で入力を読み込んだ後、以下の関数が実行される。
+void run() {
+    MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+
+    gen_table();
+    gen_table2();
+
+    auto t = small_humming(10);
 }
 
 int main(int argc, char **argv) {
