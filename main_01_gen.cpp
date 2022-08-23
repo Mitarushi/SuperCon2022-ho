@@ -4,11 +4,11 @@
 
 int qs[sc::N_MAX];
 int myid, n_procs;
-bool table[sc::M_MAX][sc::N_MAX];
-int hamming_distance[sc::M_MAX][sc::M_MAX];
+uint8_t table[sc::M_MAX][sc::N_MAX / 8];
+short hamming_distance[sc::M_MAX][sc::M_MAX];
 
-constexpr int SIMULATE_BLOCK_SIZE = 32;
-void simulate_block(char *s, bool *result, int i_form) {
+constexpr int SIMULATE_BLOCK_SIZE = 128;
+void simulate_block(char *s, uint8_t *result, int i_form) {
     short q[SIMULATE_BLOCK_SIZE];
     for (int i = 0; i < SIMULATE_BLOCK_SIZE; i++) {
         q[i] = std::min(i_form + i, sc::N_MAX - 1);
@@ -23,7 +23,8 @@ void simulate_block(char *s, bool *result, int i_form) {
     }
 
     for (int i = 0; i < SIMULATE_BLOCK_SIZE; i++) {
-        result[std::min(i_form + i, sc::N_MAX - 1)] = sc::F[q[i]];
+        int index = std::min(i_form + i, sc::N_MAX - 1);
+        result[index / 8] |= sc::F[q[i]] << (index % 8);
     }
 }
 
@@ -43,18 +44,11 @@ void gen_table() {
     for (int id = 0; id < n_procs; id++) {
         int from = bs * id;
         int to = std::min(bs * (id + 1), sc::M_MAX);
-        MPI_Bcast(table + from, sc::N_MAX * (to - from), MPI_C_BOOL, id, MPI_COMM_WORLD);
-
-        int cnt = 0;
-        for (int i = from; i < to; i++) {
-            for (int j = 0; j < sc::N_MAX; j++) {
-                cnt += table[i][j];
-            }
-        }
+        MPI_Bcast(table + from, sc::N_MAX / 8 * (to - from), MPI_CHAR, id, MPI_COMM_WORLD);
     }
 }
 
-void get_table2(){
+void gen_table2() {
     const int bs = (sc::M_MAX + (n_procs - 1)) / n_procs;
 
     const int index_from = bs * myid;
@@ -65,8 +59,11 @@ void get_table2(){
         for (int j = 0; j < sc::M_MAX; j++) {
             if (i >= j) continue;
             hamming_distance[i][j] = 0;
-            for (int k = 0; k < sc::N_MAX; k++) {
-                hamming_distance[i][j] += (table[i][k] == table[j][k]);
+            for (int k = 0; k < sc::N_MAX / 8; k++) {
+                uint8_t t = table[i][k] ^ table[j][k];
+                for (int l = 0; l < 8; l++) {
+                    hamming_distance[i][j] += (t >> l) & 1;
+                }
             }
         }
     }
@@ -78,15 +75,7 @@ void run() {
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
     gen_table();
-
-    int cnt = 0;
-    for (int i = 0; i < sc::M_MAX; i++) {
-        for (int j = 0; j < sc::N_MAX; j++) {
-            cnt += table[i][j];
-        }
-    }
-
-    printf("%d\n", cnt);
+    gen_table2();
 }
 
 int main(int argc, char **argv) {
