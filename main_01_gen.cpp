@@ -5,6 +5,7 @@
 int qs[sc::N_MAX];
 int myid, n_procs;
 bool table[sc::M_MAX][sc::N_MAX];
+int hamming_distance[sc::M_MAX][sc::M_MAX];
 
 constexpr int SIMULATE_BLOCK_SIZE = 32;
 void simulate_block(char *s, bool *result, int i_form) {
@@ -48,6 +49,24 @@ void gen_table() {
         for (int i = from; i < to; i++) {
             for (int j = 0; j < sc::N_MAX; j++) {
                 cnt += table[i][j];
+            }
+        }
+    }
+}
+
+void get_table2(){
+    const int bs = (sc::M_MAX + (n_procs - 1)) / n_procs;
+
+    const int index_from = bs * myid;
+    const int index_to = std::min(bs * (myid + 1), sc::M_MAX);
+
+#pragma omp parallel for
+    for (int i = index_from; i < index_to; i++) {
+        for (int j = 0; j < sc::M_MAX; j++) {
+            if (i >= j) continue;
+            hamming_distance[i][j] = 0;
+            for (int k = 0; k < sc::N_MAX; k++) {
+                hamming_distance[i][j] += (table[i][k] == table[j][k]);
             }
         }
     }
