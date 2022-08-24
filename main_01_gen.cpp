@@ -6,6 +6,7 @@
 int qs[sc::N_MAX];
 int myid, n_procs;
 bool table[sc::M_MAX][sc::N_MAX];
+std::uint64_t t_table_bit[sc::N_MAX][sc::M_MAX / 64 + 1] = {};
 uint16_t hamming_distance[sc::M_MAX][sc::M_MAX];
 std::vector<std::pair<int, int>> small_hamming;
 int leader[sc::M_MAX];
@@ -119,6 +120,14 @@ void gen_table2() {
     }
 }
 
+void gen_table3() {
+    for (int i = 0; i < leader_size; i++) {
+        for (int j = 0; j < sc::N_MAX; j++) {
+            t_table_bit[j][i / 64] |= (std::uint64_t(table[leader[i]][j]) << (i % 64));
+        }
+    }
+}
+
 struct hash {
     uint64_t x;
 
@@ -212,13 +221,14 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
     bool buf_useable = false;
 
     while (true) {
-        std::vector<int> count(sc::N_MAX, 0);
+        std::vector<short> count(sc::N_MAX, 0);
 
         bool is_end = true;
         bool is_small = result.size() < 25;
 
         if (is_small) {
             // std::cout << small_hamming.size() << std::endl;
+#pragma omp parallel for
             for (std::pair<int, int> &p : small_hamming) {
                 int i = p.first;
                 int j = p.second;
@@ -230,9 +240,11 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
 
                 is_end = false;
 
-#pragma omp parallel for
                 for (int k = 0; k < sc::N_MAX; k++) {
-                    count[k] += table[i][k] ^ table[j][k];
+                    if (table[i][k] ^ table[j][k]) {
+#pragma omp atomic
+                        count[k]++;
+                    }
                 }
             }
         }
@@ -255,19 +267,25 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
                 buf_idx = idx;
 
             } else {
-                ti.start_timer();
-
                 buf_idx = 0;
+                ti.start_timer();
 #pragma omp parallel for schedule(dynamic)
                 for (int i_idx = 0; i_idx < leader_size; i_idx++) {
                     int i = leader[i_idx];
 
+                    std::uint64_t is_distinguishable[sc::M_MAX / 64 + 1] = {};
+
+                    for (int k : result) {
+                        std::uint64_t mask = 0ULL - table[i][k];
+                        for (int j_idx = 0; j_idx < i_idx / 64 + 1; j_idx++) {
+                            is_distinguishable[j_idx] |= mask ^ t_table_bit[k][j_idx];
+                        }
+                    }
+
                     for (int j_idx = 0; j_idx < i_idx; j_idx++) {
-                        int j = leader[j_idx];
+                        if (!((is_distinguishable[j_idx / 64] >> (j_idx % 64)) & 1)) {
+                            int j = leader[j_idx];
 
-                        bool distinguish_able = is_distinguishable(i, j, result);
-
-                        if (!distinguish_able) {
                             int t;
 
 #pragma omp atomic capture
@@ -282,19 +300,21 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
                 }
 
                 buf_useable = buf_idx < buf_size;
-
                 ti.end_timer();
             }
 
+#pragma omp parallel for
             for (int idx = 0; idx < buf_idx; idx++) {
                 int i = buffer[idx].first;
                 int j = buffer[idx].second;
 
                 is_end = false;
 
-#pragma omp parallel for
                 for (int k = 0; k < sc::N_MAX; k++) {
-                    count[k] += table[i][k] ^ table[j][k];
+                    if (table[i][k] ^ table[j][k]) {
+#pragma omp atomic
+                        count[k]++;
+                    }
                 }
             }
         }
@@ -473,6 +493,7 @@ void run() {
 
     gen_table();
     gen_table2();
+    gen_table3();
     get_small_hamming(55);
 
     std::vector<int> best;
