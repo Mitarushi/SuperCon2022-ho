@@ -203,7 +203,7 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
         std::vector<int> count(sc::N_MAX, 0);
 
         bool is_end = true;
-        bool is_small = result.size() < 20;
+        bool is_small = result.size() < 30;
 
         if (is_small) {
             // std::cout << small_hamming.size() << std::endl;
@@ -389,7 +389,7 @@ std::vector<int> set_cover() {
         }
 
         if (score < optimal_score * upper) {
-            x = neighbor_search(x, priority, restriction, 40);
+            x = neighbor_search(x, priority, restriction, 30);
 
             score = get_score(x);
 
@@ -447,7 +447,7 @@ void run() {
 
     gen_table();
     gen_table2();
-    get_small_hamming(80);
+    get_small_hamming(100);
 
     while (sc::get_elapsed_time() < sc::TIME_LIMIT) {
         long prev_optimal_score = optimal_score;
