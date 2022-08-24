@@ -182,6 +182,47 @@ void get_small_hamming(int k) {
     // std::cout << "small_hamming size: " << small_hamming.size() << std::endl;
 }
 
+// ハミング距離が短い上位 k ペア採用
+void get_small_hamming_for_ranking(int k) {
+    std::vector<std::tuple<int, int, int>> hamming_sort;
+    hamming_sort.reserve(sc::M_MAX * (sc::M_MAX - 1) / 2);
+
+    for (int i = 0; i < sc::M_MAX; i++) {
+        for (int j = i + 1; j < sc::M_MAX; j++) {
+            if (hamming_distance[i][j] == 0) {
+                continue;
+            }
+            hamming_sort.emplace_back(hamming_distance[i][j], i, j);
+        }
+    }
+    std::sort(hamming_sort.begin(), hamming_sort.end());
+
+    // small_hamming;
+
+    std::unordered_set<uint64_t> hash_set;
+    for (auto [c, p, q] : hamming_sort) {
+        if (small_hamming.size() >= k) {
+            break;
+        }
+        hash h;
+        std::vector<int> r;
+        for (int i = 0; i < sc::N_MAX; i++) {
+            int t = table[p][i] ^ table[q][i];
+            if (t) {
+                h.next(i);
+                r.push_back(i);
+            }
+        }
+
+        if (!hash_set.count(h.x)) {
+            hash_set.insert(h.x);
+            small_hamming.emplace_back(p, q);
+        }
+    }
+
+    // std::cout << "small_hamming size: " << small_hamming.size() << std::endl;
+}
+
 struct timer {
     double start;
     double end;
