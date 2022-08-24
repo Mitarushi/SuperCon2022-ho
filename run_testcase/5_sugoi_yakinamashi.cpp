@@ -165,7 +165,7 @@ pair<int, std::vector<int>> set_cover(int p, std::vector<std::vector<int>> &inde
         uncover[i] = i;
     }
 
-    for (int iter = 0; iter < 100; iter++) {
+    for (int iter = 0; iter < 250; iter++) {
         std::vector<int> x = construction(uncover, count, priority, restriction);
         int x_score = x.size();
 
@@ -255,4 +255,17 @@ int main() {
 
     std::cout << "construct = " << construct_time/CLOCKS_PER_SEC << endl;
     std::cout << "total     = " << (clock()-start)/CLOCKS_PER_SEC << endl;
+    
+
+    rep(i, 0, n) {
+        int satisfy=0;
+        for (int val1 : ans){
+            for (int val2 : v[i]){
+                if (val1 == val2) satisfy++;
+            }
+        }
+        if( satisfy == 0 ) cout << i << endl;
+    }
+
+    cout << "fin" << endl;
 }

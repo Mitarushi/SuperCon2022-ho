@@ -108,7 +108,7 @@ std::vector<int> construction(std::vector<int> &uncover, std::vector<std::vector
 std::vector<int> neighbor_search(std::vector<std::vector<char>> &count, std::vector<int> &from, int priority, int restriction, int magnitude, int iter) {
     std::vector<int> result = from;
 
-    int priority2 = priority + ((100 - priority)*iter)/100;
+    int priority2 = priority + ((100 - priority)*iter)/150;
 
     for (int iter = 0; iter < 100; iter++) {
         int prev_size = result.size();
@@ -166,7 +166,7 @@ pair<int, std::vector<int>> set_cover(int p, std::vector<std::vector<int>> &inde
         uncover[i] = i;
     }
 
-    for (int iter = 0; iter < 100; iter++) {
+    for (int iter = 0; iter < 150; iter++) {
         std::vector<int> x = construction(uncover, count, priority, restriction);
         int x_score = x.size();
 
