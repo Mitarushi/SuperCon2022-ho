@@ -193,7 +193,7 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
     std::vector<int> result = from;
 
     const int buf_size = 10000;
-    std::pair<int, int> buffer[10000];
+    std::pair<int, int> buffer[10000] = {};
     int buf_idx = 0;
     bool buf_useable = false;
 
@@ -347,6 +347,8 @@ std::vector<int> neighbor_search(std::vector<int> &from, int priority, int restr
         std::vector<int> result2 = construct(result, priority, restriction);
         result.insert(result.end(), result2.begin(), result2.end());
 
+        // std::cout << result.size() << " " << result2.size() << std::endl;
+
         std::int64_t score = get_score(result);
 
         if (prev_score < score) {
@@ -360,22 +362,25 @@ std::vector<int> neighbor_search(std::vector<int> &from, int priority, int restr
 }
 
 std::int64_t optimal_score = 1000LL * N_SQUARE;
-std::vector<int> result;
 
-void set_cover() {
+std::vector<int> set_cover() {
     // std::cout << 2 << std::endl;
     const int priority = 5;
     const int restriction = 15;
 
     double upper = 1.0 + (double)restriction / 100.0;
 
+    std::vector<int> result;
+
     // std::cout << "start" << std::endl;
 
     for (int iter = 0; iter < 5; iter++) {
-        std::vector<int> x = construct(result, priority, restriction);
+
+        std::vector<int> empty;
+        std::vector<int> x = construct(empty, priority, restriction);
         std::int64_t score = get_score(x);
 
-        std::cout << score << " " << optimal_score << std::endl;
+        // std::cout << score << " " << optimal_score << std::endl;
 
         if (score < optimal_score) {
             optimal_score = score;
@@ -383,11 +388,11 @@ void set_cover() {
         }
 
         if (score < optimal_score * upper) {
-            x = neighbor_search(result, priority, restriction, 30);
+            x = neighbor_search(x, priority, restriction, 30);
 
             score = get_score(x);
 
-            std::cout << "!!   " << score << " " << optimal_score << std::endl;
+            // std::cout << "!!   " << score << " " << optimal_score << std::endl;
             if (score < optimal_score) {
                 optimal_score = score;
                 result = x;
@@ -395,6 +400,8 @@ void set_cover() {
         }
     }
     // std::cout << 5 << std::endl;
+
+    return result;
 }
 
 bool output_check(int n, int m, std::vector<int> &ans) {
@@ -442,8 +449,8 @@ void run() {
     get_small_hamming(100);
 
     while (sc::get_elapsed_time() < sc::TIME_LIMIT) {
-        result.clear();
-        set_cover();
+        long prev_optimal_score = optimal_score;
+        std::vector<int> result = set_cover();
         // std::cout << 'p' << myid << " " << optimal_score << std::endl;
 
         MPI_Barrier(MPI_COMM_WORLD);
@@ -454,8 +461,15 @@ void run() {
         } cur, mv;
         cur = {optimal_score, myid};
 
+        if (result.size() == 0) {
+            cur.score++;
+        }
+
         MPI_Allreduce(&cur, &mv, 1, MPI_LONG_INT, MPI_MINLOC, MPI_COMM_WORLD);
 
+        if (prev_optimal_score < mv.score) {
+            continue;
+        }
         optimal_score = mv.score;
 
         std::cout << 'q' << myid << " " << optimal_score << std::endl;
