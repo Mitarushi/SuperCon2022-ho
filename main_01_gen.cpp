@@ -8,7 +8,9 @@ int myid, n_procs;
 bool table[sc::M_MAX][sc::N_MAX];
 uint16_t hamming_distance[sc::M_MAX][sc::M_MAX];
 std::vector<std::pair<int, int>> small_hamming;
-bool is_leader[sc::M_MAX];
+int leader[sc::M_MAX];
+int leader_size = 0;
+
 const int N_SQUARE = sc::N_MAX * sc::N_MAX;
 
 unsigned long long SEED = 1ull;
@@ -101,13 +103,18 @@ void gen_table2() {
         MPI_Bcast(hamming_distance + from, sc::M_MAX * (to - from), MPI_SHORT, id, MPI_COMM_WORLD);
     }
 
+    leader_size = 0;
     for (int i = 0; i < sc::M_MAX; i++) {
-        is_leader[i] = true;
+        bool t = true;
         for (int j = 0; j < i; j++) {
             if (hamming_distance[i][j] == 0) {
-                is_leader[i] = false;
+                t = false;
                 break;
             }
+        }
+
+        if (t) {
+            leader[leader_size++] = i;
         }
     }
 }
@@ -180,6 +187,12 @@ struct timer {
 };
 
 inline bool is_distinguishable(int i, int j, std::vector<int> &x) {
+    if (x.size() > 0) {
+        int k = x[x.size() - 1];
+        if (table[i][k] ^ table[j][k]) {
+            return true;
+        }
+    }
     for (int k : x) {
         if (table[i][k] ^ table[j][k]) {
             return true;
@@ -188,6 +201,7 @@ inline bool is_distinguishable(int i, int j, std::vector<int> &x) {
     return false;
 }
 
+timer ti;
 std::vector<int> construct(std::vector<int> &from, int priority, int restriction) {
     // std::cout << 0 << std::endl;
     std::vector<int> result = from;
@@ -239,24 +253,24 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
                 }
 
                 buf_idx = idx;
+
             } else {
+                ti.start_timer();
+
                 buf_idx = 0;
 #pragma omp parallel for schedule(dynamic)
-                for (int i = 0; i < sc::M_MAX; i++) {
-                    if (!is_leader[i]) {
-                        continue;
-                    }
+                for (int i_idx = 0; i_idx < leader_size; i_idx++) {
+                    int i = leader[i_idx];
 
-                    for (int j = 0; j < i; j++) {
-                        if (!is_leader[j]) {
-                            continue;
-                        }
+                    for (int j_idx = 0; j_idx < i_idx; j_idx++) {
+                        int j = leader[j_idx];
 
                         bool distinguish_able = is_distinguishable(i, j, result);
 
                         if (!distinguish_able) {
                             int t;
-#pragma omp critical
+
+#pragma omp atomic capture
                             t = buf_idx++;
                             // t = buf_idx - 1;
 
@@ -268,6 +282,8 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
                 }
 
                 buf_useable = buf_idx < buf_size;
+
+                ti.end_timer();
             }
 
             for (int idx = 0; idx < buf_idx; idx++) {
@@ -317,6 +333,7 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
 
     // std::cout << result.size() << std::endl;
     // std::cout << 4 << std::endl;
+
     return result;
 }
 
@@ -461,10 +478,13 @@ void run() {
     std::vector<int> best;
     int best_array[sc::N_MAX];
 
+    int cnt = 0;
+
     while (sc::get_elapsed_time() < sc::TIME_LIMIT) {
         long prev_optimal_score = optimal_score;
         std::vector<int> result = set_cover(best);
         // std::cout << 'p' << myid << " " << optimal_score << std::endl;
+        std::cout << "acc: " << ti.acc << " " << optimal_score << " cnt " << cnt++ << std::endl;
 
         MPI_Barrier(MPI_COMM_WORLD);
 
@@ -504,12 +524,12 @@ void run() {
         if (myid == 0) {
             sc::output(best.size(), best.data());
 
-            // bool is_ok = output_check(sc::N_MAX, sc::M_MAX, result);
-            // if (is_ok) {
-            //     std::cout << "OK" << std::endl;
-            // } else {
-            //     std::cout << "ERROR" << std::endl;
-            // }
+            bool is_ok = output_check(sc::N_MAX, sc::M_MAX, best);
+            if (is_ok) {
+                std::cout << "OK" << std::endl;
+            } else {
+                std::cout << "ERROR" << std::endl;
+            }
         }
     }
 }
