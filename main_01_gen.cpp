@@ -365,7 +365,7 @@ std::vector<int> neighbor_search(std::vector<int> &from, int priority, int restr
 
 std::int64_t optimal_score = 1000LL * N_SQUARE;
 
-std::vector<int> set_cover() {
+std::vector<int> set_cover(std::vector<int> &prev_best) {
     // std::cout << 2 << std::endl;
     const int priority = 20;
     const int restriction = 10;
@@ -379,6 +379,13 @@ std::vector<int> set_cover() {
 
     for (int iter = 0; iter < 5; iter++) {
         std::vector<int> empty;
+
+        if (rnd<2>() == 0) {
+            empty = prev_best;
+            shuffle(empty);
+            empty.resize(empty.size() / 3 * 2);
+        }
+
         std::vector<int> x = construct(empty, priority, restriction);
         std::int64_t score = get_score(x);
 
@@ -450,9 +457,12 @@ void run() {
     gen_table2();
     get_small_hamming(60);
 
+    std::vector<int> best;
+    int best_array[sc::N_MAX];
+
     while (sc::get_elapsed_time() < sc::TIME_LIMIT) {
         long prev_optimal_score = optimal_score;
-        std::vector<int> result = set_cover();
+        std::vector<int> result = set_cover(best);
         // std::cout << 'p' << myid << " " << optimal_score << std::endl;
 
         MPI_Barrier(MPI_COMM_WORLD);
@@ -473,11 +483,25 @@ void run() {
             continue;
         }
         optimal_score = mv.score;
+        
+        if (mv.id == myid) {
+            best = result;
+            for (int i = 0; i < best.size(); i++) {
+                best_array[i] = best[i];
+            }
+        }
+        
+        MPI_Bcast(best_array, sc::N_MAX, MPI_INT, mv.id, MPI_COMM_WORLD);
+
+        best.resize(mv.score / N_SQUARE);
+        for (int i = 0; i < best.size(); i++) {
+            best[i] = best_array[i];
+        }
 
         // std::cout << 'q' << myid << " " << optimal_score << std::endl;
 
-        if (mv.id == 0) {
-            sc::output(result.size(), result.data());
+        if (myid == 0) {
+            sc::output(best.size(), best.data());
 
             // bool is_ok = output_check(sc::N_MAX, sc::M_MAX, result);
             // if (is_ok) {
@@ -485,34 +509,6 @@ void run() {
             // } else {
             //     std::cout << "ERROR" << std::endl;
             // }
-        } else {
-            if (myid == mv.id) {
-                int k = result.size();
-                int result_data[k];
-
-                for (int i = 0; i < k; i++) {
-                    result_data[i] = result[i];
-                }
-
-                // bool is_ok = output_check(sc::N_MAX, sc::M_MAX, result);
-                // if (is_ok) {
-                //     std::cout << "OK" << std::endl;
-                // } else {
-                //     std::cout << "ERROR" << std::endl;
-                // }
-
-                MPI_Send(&k, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-                MPI_Send(&result_data, k, MPI_INT, 0, 0, MPI_COMM_WORLD);
-            } else if (myid == 0) {
-                int k;
-                MPI_Status status;
-                MPI_Recv(&k, 1, MPI_INT, mv.id, 0, MPI_COMM_WORLD, &status);
-
-                int result_data[k];
-                MPI_Recv(&result_data, k, MPI_INT, mv.id, 0, MPI_COMM_WORLD, &status);
-
-                sc::output(k, result_data);
-            }
         }
     }
 }
