@@ -380,10 +380,10 @@ std::vector<int> set_cover(std::vector<int> &prev_best) {
     for (int iter = 0; iter < 5; iter++) {
         std::vector<int> empty;
 
-        if (rnd<2>() == 0) {
+        if (rnd<3>() == 0) {
             empty = prev_best;
             shuffle(empty);
-            empty.resize(empty.size() / 3 * 2);
+            empty.resize(empty.size() * 5 / 6);
         }
 
         std::vector<int> x = construct(empty, priority, restriction);
