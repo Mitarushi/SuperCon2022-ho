@@ -450,9 +450,7 @@ void run() {
     gen_table2();
     get_small_hamming(60);
 
-    std::vector <
-
-        while (sc::get_elapsed_time() < sc::TIME_LIMIT) {
+    while (sc::get_elapsed_time() < sc::TIME_LIMIT) {
         long prev_optimal_score = optimal_score;
         std::vector<int> result = set_cover();
         // std::cout << 'p' << myid << " " << optimal_score << std::endl;
