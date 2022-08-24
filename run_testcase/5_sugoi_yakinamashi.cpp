@@ -49,7 +49,11 @@ void shuffle(vector<int> &v) {
     }
 }
 
+double construct_time = 0;
+
 std::vector<int> construction(std::vector<int> &uncover, std::vector<std::vector<char>> &count, int priority, int restriction) {
+    double construct_start = clock();
+
     std::vector<int> result;
     std::vector<int> uncover2 = uncover;
 
@@ -93,11 +97,17 @@ std::vector<int> construction(std::vector<int> &uncover, std::vector<std::vector
         uncover2.resize(uncover2.size() - del_count);
     }
 
+    double construct_end = clock();
+
+    construct_time += construct_end - construct_start;
+
     return result;
 }
 
 std::vector<int> neighbor_search(std::vector<std::vector<char>> &count, std::vector<int> &from, int priority, int restriction, int magnitude) {
     std::vector<int> result = from;
+
+    int one_hundred = 100;
 
     for (int iter = 0; iter < 100; iter++) {
         int prev_size = result.size();
@@ -121,7 +131,7 @@ std::vector<int> neighbor_search(std::vector<std::vector<char>> &count, std::vec
             }
         }
 
-        std::vector<int> result2 = construction(uncover, count, priority, restriction);
+        std::vector<int> result2 = construction(uncover, count, one_hundred, restriction);
         result.insert(result.end(), result2.begin(), result2.end());
 
         if (prev_size < result.size()) {
@@ -191,6 +201,8 @@ pair<int, std::vector<int>> set_cover(int p, std::vector<std::vector<int>> &inde
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
+    
+    double start = clock();
 
     int n;
     n = 5000;
@@ -236,4 +248,11 @@ int main() {
     std::cout << anssize << endl;
     for (int val : ans) std::cout << val << " ";
     std::cout << endl;
+
+    int score = anssize * 1000000;
+    for (int val : ans) score += val;
+    std::cout << score << endl;
+
+    std::cout << "construct = " << construct_time/CLOCKS_PER_SEC << endl;
+    std::cout << "total     = " << (clock()-start)/CLOCKS_PER_SEC << endl;
 }
