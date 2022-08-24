@@ -192,12 +192,10 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
     // std::cout << 0 << std::endl;
     std::vector<int> result = from;
 
-    const int buf_size = 10000;
-    std::pair<int, int> buffer[10000] = {};
+    const int buf_size = 11000;
+    std::pair<int, int> buffer[buf_size] = {};
     int buf_idx = 0;
     bool buf_useable = false;
-
-    timer t;
 
     while (true) {
         std::vector<int> count(sc::N_MAX, 0);
@@ -225,8 +223,6 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
             }
         }
         if (is_end || !is_small) {
-            t.start_timer();
-
             if (buf_useable) {
                 int idx = 0;
                 int end = buf_idx - 1;
@@ -274,8 +270,6 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
                 buf_useable = buf_idx < buf_size;
             }
 
-            t.end_timer();
-
             for (int idx = 0; idx < buf_idx; idx++) {
                 int i = buffer[idx].first;
                 int j = buffer[idx].second;
@@ -295,7 +289,7 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
 
         std::vector<double> ratio(sc::N_MAX);
         for (int i = 0; i < sc::N_MAX; i++) {
-            ratio[i] = double(N_SQUARE + i + 1) / (count[i] + 1e-9);
+            ratio[i] = double(N_SQUARE + i + 1) / std::pow(count[i] + 1e-9, 1.5);
         }
 
         int min_index = std::min_element(ratio.begin(), ratio.end()) - ratio.begin();
@@ -363,13 +357,21 @@ std::vector<int> neighbor_search(std::vector<int> &from, int priority, int restr
     return result;
 }
 
+inline int linear_inter(int start, int end) {
+    double t = sc::get_elapsed_time() / sc::TIME_LIMIT;
+    t = std::min(1.0, t);
+    return start + std::round((end - start) * t);
+}
+
 std::int64_t optimal_score = 1000LL * N_SQUARE;
 
 std::vector<int> set_cover(std::vector<int> &prev_best) {
     // std::cout << 2 << std::endl;
-    const int priority = 20;
-    const int restriction = 10;
-    const int magnitude = 20;
+    const int priority = linear_inter(15, 30);
+    const int restriction = linear_inter(10, 10);
+    const int magnitude = linear_inter(20, 19);
+    const int prev_remain = linear_inter(65, 80);
+    const int prev_ratio = linear_inter(40, 80);
 
     double upper = 1.0 + (double)restriction / 100.0;
 
@@ -377,13 +379,13 @@ std::vector<int> set_cover(std::vector<int> &prev_best) {
 
     // std::cout << "start" << std::endl;
 
-    for (int iter = 0; iter < 5; iter++) {
+    for (int iter = 0; iter < 3; iter++) {
         std::vector<int> empty;
 
-        if (rnd<3>() == 0) {
+        if (rnd<100>() < prev_ratio) {
             empty = prev_best;
             shuffle(empty);
-            empty.resize(empty.size() * 5 / 6);
+            empty.resize(empty.size() * prev_remain / 100);
         }
 
         std::vector<int> x = construct(empty, priority, restriction);
@@ -443,7 +445,6 @@ bool output_check(int n, int m, std::vector<int> &ans) {
     return 1;
 }
 
-#include <unistd.h>
 // main関数で入力を読み込んだ後、以下の関数が実行される。
 void run() {
     MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
@@ -455,7 +456,7 @@ void run() {
 
     gen_table();
     gen_table2();
-    get_small_hamming(60);
+    get_small_hamming(55);
 
     std::vector<int> best;
     int best_array[sc::N_MAX];
@@ -483,14 +484,14 @@ void run() {
             continue;
         }
         optimal_score = mv.score;
-        
+
         if (mv.id == myid) {
             best = result;
             for (int i = 0; i < best.size(); i++) {
                 best_array[i] = best[i];
             }
         }
-        
+
         MPI_Bcast(best_array, sc::N_MAX, MPI_INT, mv.id, MPI_COMM_WORLD);
 
         best.resize(mv.score / N_SQUARE);
