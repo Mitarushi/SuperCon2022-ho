@@ -193,7 +193,8 @@ int main() {
     cin.tie(nullptr);
 
     int n;
-    std::cin >> n;
+    n = 5000;
+    //std::cin >> n;
 
     vvi v(n);
 
@@ -202,7 +203,7 @@ int main() {
         cin >> x;
         int sz;
         cin >> sz;
-        rep(j, 1, sz) {
+        rep(j, 0, sz) {
             int val;
             cin >> val;
             v[i].emplace_back(val);

@@ -102,7 +102,7 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
     }
   }
 
-  /*
+  
   // 貪欲解
   while(true){
     int id=-1,mx=-1;
@@ -131,7 +131,6 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
       }
     }
   }
-  */
   
 
   //ans = { 7, 14, 35, 72, 75, 87, 88, 202, 353, 406, 409, 444, 503, 560, 576, 584, 611, 620, 666, 690, 692, 728, 731, 735, 767, 794, 800, 834, 836, 837, 844, 847, 862, 912, 928 };
@@ -141,6 +140,7 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
 
   //ans = {46, 516, 100, 460, 75, 816, 229, 711, 339, 112, 928, 837, 622, 952, 272, 703, 35, 690, 427, 277, 213, 692, 181, 576, 360, 659, 458, 409, 202, 319, 406, 836, 560, 107, 834, 916, 190, 88};
 
+  /*
   int ans_sz;
   cin>>ans_sz;
   ans.clear();
@@ -149,6 +149,7 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
     cin>>id;
     ans.emplace_back(id);
   }
+  */
   
   // ans を指定する場合 ( 実験用)
   for(int id:ans){
@@ -161,7 +162,7 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
 
 
   for(int i=0;i<p;i++){
-    cout<<satisfy[i]<<" ";
+    //cout<<satisfy[i]<<" ";
     if(satisfy[i]==0){
         cout<<"iiii";
         return {-1,{}};
@@ -373,7 +374,8 @@ int main(){
   cin.tie(nullptr);
 
   int n;
-  cin>>n;
+  n = 5000;
+  //cin>>n;
   vvi v(n);
   
   rep(i, 0, n) {
@@ -381,7 +383,7 @@ int main(){
         cin >> x;
         int sz;
         cin >> sz;
-        rep(j, 1, sz) {
+        rep(j, 0, sz) {
             int val;
             cin >> val;
             v[i].emplace_back(val);
