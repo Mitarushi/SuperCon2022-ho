@@ -102,7 +102,7 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
     }
   }
 
-  
+  /*
   // 貪欲解
   while(true){
     int id=-1,mx=-1;
@@ -131,7 +131,7 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
       }
     }
   }
-  
+  */
 
   //ans = { 7, 14, 35, 72, 75, 87, 88, 202, 353, 406, 409, 444, 503, 560, 576, 584, 611, 620, 666, 690, 692, 728, 731, 735, 767, 794, 800, 834, 836, 837, 844, 847, 862, 912, 928 };
   //ans = { 1,2,3,4,5,6,8, 928, 406, 836, 794, 576, 35, 690, 150, 213, 837, 645, 103, 738, 182, 952, 666, 362, 786, 75, 353, 584, 125, 110, 692, 72, 87, 800, 88, 659, 834, 458, 7, 14, 170 };
@@ -152,6 +152,7 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
   */
   
   // ans を指定する場合 ( 実験用)
+  /*
   for(int id:ans){
     for(int i=0;i<p;i++){
       if(emerge[i][id]==1){
@@ -169,11 +170,12 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
     }
   }
   cout<<endl;
+  */
   
 
-  /*
+  
   // ビームサーチ
-  int beam_width=250;
+  int beam_width=100;
   std::vector<std::pair<unsigned long long,std::vector<int>>> beam_set(beam_width); // hash,beam
   std::vector<unsigned long long> zobristhash(1000);
 
@@ -257,7 +259,7 @@ pair<int,std::vector<int>> set_cover(int p,std::vector<std::vector<int>> &index)
       break;
     }
   }
-  */
+  
 
   /*
   for(int i=0;i<p;i++){
