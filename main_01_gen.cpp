@@ -203,7 +203,7 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
         std::vector<int> count(sc::N_MAX, 0);
 
         bool is_end = true;
-        bool is_small = result.size() < 30;
+        bool is_small = result.size() < 20;
 
         if (is_small) {
             // std::cout << small_hamming.size() << std::endl;
@@ -310,6 +310,8 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
                 }
             }
 
+            // std::cout << "ok size: " << ok.size() << std::endl;
+
             min_index = ok[rnd(ok.size())];
         }
 
@@ -375,7 +377,6 @@ std::vector<int> set_cover() {
     // std::cout << "start" << std::endl;
 
     for (int iter = 0; iter < 5; iter++) {
-
         std::vector<int> empty;
         std::vector<int> x = construct(empty, priority, restriction);
         std::int64_t score = get_score(x);
@@ -388,7 +389,7 @@ std::vector<int> set_cover() {
         }
 
         if (score < optimal_score * upper) {
-            x = neighbor_search(x, priority, restriction, 30);
+            x = neighbor_search(x, priority, restriction, 40);
 
             score = get_score(x);
 
@@ -442,11 +443,11 @@ void run() {
 
     // std::cout << "pid" << getpid() << " " << myid << std::endl;
 
-    SEED = myid;
+    SEED = myid * 314159265 + 358979323;
 
     gen_table();
     gen_table2();
-    get_small_hamming(100);
+    get_small_hamming(80);
 
     while (sc::get_elapsed_time() < sc::TIME_LIMIT) {
         long prev_optimal_score = optimal_score;
@@ -472,17 +473,17 @@ void run() {
         }
         optimal_score = mv.score;
 
-        std::cout << 'q' << myid << " " << optimal_score << std::endl;
+        // std::cout << 'q' << myid << " " << optimal_score << std::endl;
 
         if (mv.id == 0) {
             sc::output(result.size(), result.data());
 
-            bool is_ok = output_check(sc::N_MAX, sc::M_MAX, result);
-            if (is_ok) {
-                std::cout << "OK" << std::endl;
-            } else {
-                std::cout << "ERROR" << std::endl;
-            }
+            // bool is_ok = output_check(sc::N_MAX, sc::M_MAX, result);
+            // if (is_ok) {
+            //     std::cout << "OK" << std::endl;
+            // } else {
+            //     std::cout << "ERROR" << std::endl;
+            // }
         } else {
             if (myid == mv.id) {
                 int k = result.size();
@@ -492,12 +493,12 @@ void run() {
                     result_data[i] = result[i];
                 }
 
-                bool is_ok = output_check(sc::N_MAX, sc::M_MAX, result);
-                if (is_ok) {
-                    std::cout << "OK" << std::endl;
-                } else {
-                    std::cout << "ERROR" << std::endl;
-                }
+                // bool is_ok = output_check(sc::N_MAX, sc::M_MAX, result);
+                // if (is_ok) {
+                //     std::cout << "OK" << std::endl;
+                // } else {
+                //     std::cout << "ERROR" << std::endl;
+                // }
 
                 MPI_Send(&k, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
                 MPI_Send(&result_data, k, MPI_INT, 0, 0, MPI_COMM_WORLD);
