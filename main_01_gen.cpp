@@ -269,10 +269,11 @@ std::vector<int> construct(std::vector<int> &from, int priority, int restriction
 
         if (is_small) {
             // std::cout << small_hamming.size() << std::endl;
+            int sh_size = small_hamming.size();
 #pragma omp parallel for
-            for (std::pair<int, int> &p : small_hamming) {
-                int i = p.first;
-                int j = p.second;
+            for (int p = 0; p < sh_size; p++) {
+                int i = small_hamming[p].first;
+                int j = small_hamming[p].second;
                 bool distinguish_able = is_distinguishable(i, j, result);
 
                 if (distinguish_able) {
