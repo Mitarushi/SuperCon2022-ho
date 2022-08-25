@@ -470,7 +470,7 @@ std::vector<int> set_cover(std::vector<int> &prev_best) {
         std::vector<int> x = construct(empty, priority, restriction);
         std::int64_t score = get_score(x);
 
-        std::cout << score << " " << optimal_score << std::endl;
+        // std::cout << score << " " << optimal_score << std::endl;
 
         if (score < optimal_score) {
             optimal_score = score;
@@ -547,7 +547,7 @@ void run() {
         long prev_optimal_score = optimal_score;
         std::vector<int> result = set_cover(best);
         // std::cout << 'p' << myid << " " << optimal_score << std::endl;
-        std::cout << "acc: " << ti.acc << " " << optimal_score << " cnt " << cnt++ << std::endl;
+        // std::cout << "acc: " << ti.acc << " " << optimal_score << " cnt " << cnt++ << std::endl;
 
         MPI_Barrier(MPI_COMM_WORLD);
 
@@ -595,9 +595,9 @@ void run() {
 
             bool is_ok = output_check(sc::N_MAX, sc::M_MAX, best);
             if (is_ok) {
-                std::cout << "OK" << std::endl;
+                // std::cout << "OK" << std::endl;
             } else {
-                std::cout << "ERROR" << std::endl;
+                // std::cout << "ERROR" << std::endl;
             }
         }
     }
