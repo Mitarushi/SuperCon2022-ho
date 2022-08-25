@@ -585,7 +585,13 @@ void run() {
         // std::cout << 'q' << myid << " " << optimal_score << std::endl;
 
         if (myid == 0) {
+            for (int &i : best) {
+                i++;
+            }
             sc::output(best.size(), best.data());
+            for (int &i : best) {
+                i--;
+            }
 
             bool is_ok = output_check(sc::N_MAX, sc::M_MAX, best);
             if (is_ok) {
